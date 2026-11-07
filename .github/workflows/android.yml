@@ -41,10 +41,12 @@ jobs:
           script: |
             adb shell locksettings set-pin 2468
             gradle --no-daemon connectedDebugAndroidTest || { adb logcat -d -s AndroidRuntime TestRunner System.out DiaryCrypto; exit 1; }
+      - name: Collect local signing tool
+        run: cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" app/build/outputs/apk/debug/apksigner.jar
       - uses: actions/upload-artifact@v4
         with:
           name: Tagebuch-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/
           retention-days: 30
           if-no-files-found: error
       - uses: actions/upload-artifact@v4

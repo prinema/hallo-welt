@@ -42,7 +42,13 @@ public class DiaryDeviceTest {
             assertFalse("Emulator lock screen was not dismissed",km.isKeyguardLocked());
         }
         launch();unlock();
-        tap("Neuer Eintrag");device.findObject(By.clazz("android.widget.EditText")).setText("Ein sonniger Testtag mit Grüßen.");tap("Speichern");waitText("Ein sonniger Testtag");
+        assertFalse(device.hasObject(By.text("Sperren")));assertFalse(device.hasObject(By.text("Sicherungen")));assertFalse(device.hasObject(By.textContains("Platz für alles")));
+        tap("Neuer Eintrag");
+        UiObject2 save=device.findObject(By.text("Speichern"));UiObject2 edit=device.findObject(By.clazz("android.widget.EditText"));
+        assertTrue(save.getVisibleBounds().top>=edit.getVisibleBounds().bottom);
+        assertTrue(save.getVisibleBounds().width()<device.getDisplayWidth()/2);
+        assertFalse(device.hasObject(By.textContains("Wird beim Verlassen")));
+        device.findObject(By.clazz("android.widget.EditText")).setText("Ein sonniger Testtag mit Grüßen.");tap("Speichern");waitText("Ein sonniger Testtag");
         // A second entry on the same day must remain a separate entry.
         tap("Neuer Eintrag");device.findObject(By.clazz("android.widget.EditText")).setText("Noch ein Moment am selben Tag.");tap("Speichern");waitText("Noch ein Moment");
         File f=new File(getInstrumentation().getTargetContext().getNoBackupFilesDir(),"diary.vault");assertTrue(f.exists());
@@ -50,10 +56,10 @@ public class DiaryDeviceTest {
         assertFalse(new String(stored,StandardCharsets.UTF_8).contains("sonniger Testtag"));
         device.pressHome();launch();unlock();waitText("Ein sonniger Testtag");waitText("Noch ein Moment");
         tap("Ein sonniger Testtag");device.findObject(By.clazz("android.widget.EditText")).setText("Bearbeiteter Gedanke.");tap("Speichern");waitText("Bearbeiteter Gedanke");
-        tap("Bearbeiteter Gedanke");tap("Löschen");
+        tap("Bearbeiteter Gedanke");device.findObject(By.desc("Weitere Optionen")).click();tap("Löschen");
         assertTrue(device.wait(Until.hasObject(By.text("Eintrag löschen?")),5000));device.findObject(By.res("android:id/button1")).click();waitText("Noch ein Moment");
         assertFalse(device.hasObject(By.textContains("Bearbeiteter Gedanke")));
-        tap("Sicherungen");waitText("Sicherung exportieren");waitText("Sicherung importieren");
+        device.findObject(By.desc("Weitere Optionen")).click();tap("Sicherungen");waitText("Sicherung exportieren");waitText("Sicherung importieren");
         byte[] json=Vault.encode(java.util.List.of(new Vault.Entry(java.util.UUID.randomUUID().toString(),"Wiederherstellung 🌞",123,123)));
         byte[] backup=CryptoBox.backup(json,"Ein langes Sicherungspasswort".toCharArray());
         assertEquals("Wiederherstellung 🌞",Vault.decode(CryptoBox.restore(backup,"Ein langes Sicherungspasswort".toCharArray())).get(0).text);

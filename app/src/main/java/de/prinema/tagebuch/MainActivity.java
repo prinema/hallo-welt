@@ -52,7 +52,7 @@ public class MainActivity extends Activity {
         editor=null; editing=null;
         root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(BG);
         root.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
-        root.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets x=insets.getInsets(WindowInsets.Type.systemBars());v.setPadding(dp(22)+x.left,x.top+dp(12),dp(22)+x.right,x.bottom+dp(12));return insets;});
+        root.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets x=insets.getInsets(WindowInsets.Type.systemBars());v.setPadding(dp(22)+x.left,x.top+dp(12),dp(22)+x.right,Math.max(x.bottom,insets.getInsets(WindowInsets.Type.ime()).bottom)+dp(12));return insets;});
         setContentView(root); root.requestApplyInsets();
     }
     private Button button(String label,boolean primary,Runnable action){
@@ -60,11 +60,15 @@ public class MainActivity extends Activity {
         b.setMinHeight(dp(52));b.setPadding(dp(14),dp(4),dp(14),dp(4));b.setElevation(0);b.setBackground(rounded(primary?ACCENT:PEACH,18));
         LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(54));p.topMargin=dp(8);b.setLayoutParams(p);b.setOnClickListener(v->action.run());return b;
     }
-    private void header(String title,Runnable back,boolean lock){
+    private void header(String title,Runnable back,boolean menu){
         LinearLayout bar=new LinearLayout(this);bar.setGravity(Gravity.CENTER_VERTICAL);
         if(back!=null){TextView b=text("‹",38,INK);b.setGravity(Gravity.CENTER);b.setContentDescription("Zurück");bar.addView(b,new LinearLayout.LayoutParams(dp(42),dp(52)));b.setOnClickListener(v->back.run());}
-        TextView h=text(title,28,INK);h.setTypeface(null,Typeface.BOLD);bar.addView(h,new LinearLayout.LayoutParams(0,dp(56),1));h.setGravity(Gravity.CENTER_VERTICAL);
-        if(lock){TextView b=text("Sperren",14,ACCENT);b.setPadding(dp(8),dp(16),0,dp(16));bar.addView(b);b.setOnClickListener(v->{saveEditor(false);lockSession();});}
+        TextView h=text(title,back==null?28:19,INK);h.setTypeface(null,Typeface.BOLD);bar.addView(h,new LinearLayout.LayoutParams(0,dp(56),1));h.setGravity(Gravity.CENTER_VERTICAL);
+        if(menu){TextView more=text("⋮",30,INK);more.setGravity(Gravity.CENTER);more.setContentDescription("Weitere Optionen");bar.addView(more,new LinearLayout.LayoutParams(dp(48),dp(48)));more.setOnClickListener(v->{
+            PopupMenu popup=new PopupMenu(this,more);
+            popup.getMenu().add("Sicherungen");if(editor!=null&&editing!=null)popup.getMenu().add("Löschen");
+            popup.setOnMenuItemClickListener(item->{if("Löschen".contentEquals(item.getTitle()))confirmDelete(editing);else if(saveEditor(false))showBackups();return true;});popup.show();
+        });}
         root.addView(bar);space(root,12);
     }
     private LinearLayout scroll(){ScrollView s=new ScrollView(this);s.setFillViewport(true);body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);s.addView(body);root.addView(s,new LinearLayout.LayoutParams(-1,0,1));return body;}
@@ -108,27 +112,29 @@ public class MainActivity extends Activity {
     private String date(long time,String pattern){return new SimpleDateFormat(pattern,locale).format(new Date(time));}
     private void showEntries(){
         if(!unlocked)return;base();header("Tagebuch",null,true);
-        LinearLayout tools=new LinearLayout(this);TextView subtitle=text("Platz für alles, was dich bewegt.",14,MUTED);tools.addView(subtitle,new LinearLayout.LayoutParams(0,-2,1));
-        TextView settings=text("Sicherungen",14,ACCENT);settings.setPadding(dp(4),dp(4),0,dp(12));settings.setOnClickListener(v->showBackups());tools.addView(settings);root.addView(tools);
         LinearLayout list=scroll();
         ArrayList<Vault.Entry> sorted=new ArrayList<>(entries);sorted.sort((a,b)->Long.compare(b.created,a.created));String previous="";
         for(Vault.Entry e:sorted){
             String group=date(e.created,"EEEE, d. MMMM yyyy");
             if(!group.equals(previous)){space(list,18);TextView day=text(group,15,INK);day.setTypeface(null,Typeface.BOLD);day.setPadding(dp(12),dp(10),dp(12),dp(10));day.setBackground(rounded(previous.isEmpty()?PEACH:YELLOW,12));list.addView(day);previous=group;}
-            space(list,10);LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(16),dp(15),dp(16),dp(17));card.setBackground(rounded(Color.WHITE,18));
+            space(list,10);LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(16),dp(15),dp(16),dp(17));GradientDrawable outline=rounded(Color.WHITE,16);outline.setStroke(dp(1.2f),0xFFAD644B);card.setBackground(outline);card.setElevation(dp(2));
             card.addView(text(date(e.created,"HH:mm"),13,ACCENT));space(card,8);TextView snippet=text(e.text,17,INK);snippet.setMaxLines(4);snippet.setEllipsize(android.text.TextUtils.TruncateAt.END);snippet.setLineSpacing(dp(3),1);card.addView(snippet);list.addView(card);card.setOnClickListener(v->showEditor(e));
         }
         if(entries.isEmpty()){space(list,56);TextView empty=text("Deine erste Seite wartet.",24,INK);empty.setTypeface(null,Typeface.BOLD);list.addView(empty);space(list,12);list.addView(text("Ein Gedanke, ein schöner Moment oder einfach dein Tag. Schreib, wie es sich für dich richtig anfühlt.",17,MUTED));}
         space(list,24);root.addView(button("＋  Neuer Eintrag",true,()->showEditor(null)));
     }
     private void showEditor(Vault.Entry e){
-        base();editing=e;header(e==null?"Dein Moment":date(e.created,"d. MMM · HH:mm"),()->{if(saveEditor(false))showEntries();},false);
-        LinearLayout actions=new LinearLayout(this);Button save=button("Speichern",true,()->{if(saveEditor(true)){toast("Gespeichert");showEntries();}});actions.addView(save,new LinearLayout.LayoutParams(0,dp(50),1));
-        if(e!=null){Button del=button("Löschen",false,()->confirmDelete(e));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(dp(105),dp(50));p.leftMargin=dp(10);actions.addView(del,p);}root.addView(actions);space(root,18);
-        editor=new EditText(this);editor.setGravity(Gravity.TOP);editor.setTextSize(19);editor.setTextColor(INK);editor.setHintTextColor(MUTED);editor.setHint("Was möchtest du festhalten?");editor.setBackgroundColor(Color.TRANSPARENT);editor.setPadding(0,dp(10),0,0);editor.setLineSpacing(dp(5),1);
+        base();root.setBackgroundColor(0xFFFFEEE4);editing=e;
+        header(date(e==null?System.currentTimeMillis():e.created,"d. MMMM · HH:mm"),()->{if(saveEditor(false))showEntries();},true);
+        FrameLayout paper=new FrameLayout(this);GradientDrawable sheet=rounded(0xFFFFFCF2,16);sheet.setStroke(dp(1),0xFFCDBAA4);paper.setBackground(sheet);paper.setElevation(dp(3));
+        LinearLayout.LayoutParams paperParams=new LinearLayout.LayoutParams(-1,0,1);paperParams.topMargin=dp(8);paperParams.bottomMargin=dp(16);paperParams.leftMargin=dp(2);paperParams.rightMargin=dp(2);root.addView(paper,paperParams);
+        editor=new EditText(this);editor.setGravity(Gravity.TOP);editor.setTextSize(19);editor.setTextColor(INK);editor.setHintTextColor(MUTED);editor.setHint("Was möchtest du festhalten?");editor.setBackgroundColor(Color.TRANSPARENT);editor.setPadding(dp(20),dp(22),dp(20),dp(22));editor.setLineSpacing(dp(5),1);
         editor.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE|InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         editor.setImeOptions(EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING|EditorInfo.IME_FLAG_NO_EXTRACT_UI);editor.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);editor.setSaveEnabled(false);editor.setFilters(new InputFilter[]{new InputFilter.LengthFilter(200000)});
-        if(e!=null)editor.setText(e.text);root.addView(editor,new LinearLayout.LayoutParams(-1,0,1));space(root,8);root.addView(text("Wird beim Verlassen verschlüsselt gespeichert.",12,MUTED));
+        if(e!=null)editor.setText(e.text);paper.addView(editor,new FrameLayout.LayoutParams(-1,-1));
+        LinearLayout footer=new LinearLayout(this);footer.setGravity(Gravity.RIGHT|Gravity.CENTER_VERTICAL);
+        Button save=button("Speichern",true,()->{if(saveEditor(true)){toast("Gespeichert");showEntries();}});save.setMinHeight(0);save.setMinimumHeight(0);save.setMinWidth(0);save.setMinimumWidth(0);save.setTextSize(15);save.setPadding(dp(18),0,dp(18),0);save.setBackground(rounded(ACCENT,13));
+        footer.addView(save,new LinearLayout.LayoutParams(-2,dp(48)));root.addView(footer,new LinearLayout.LayoutParams(-1,dp(52)));
     }
     private boolean saveEditor(boolean explicit){
         if(editor==null||!unlocked)return true;
