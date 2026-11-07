@@ -1,13 +1,20 @@
 plugins { id 'com.android.application' }
-
 android {
-    namespace 'de.beispiel.hallowelt'
+    namespace 'de.prinema.tagebuch'
     compileSdk 35
     defaultConfig {
-        applicationId 'de.beispiel.hallowelt'
-        minSdk 23
+        applicationId 'de.prinema.tagebuch'
+        minSdk 30
         targetSdk 35
         versionCode 1
         versionName '1.0'
+        testInstrumentationRunner 'android.test.InstrumentationTestRunner'
     }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    buildTypes { release { minifyEnabled false } }
+    packaging { resources { excludes += ['META-INF/versions/9/OSGI-INF/MANIFEST.MF'] } }
+}
+dependencies {
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.85'
+    testImplementation 'junit:junit:4.13.2'
 }
