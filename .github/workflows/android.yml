@@ -23,7 +23,7 @@ jobs:
         with:
           gradle-version: '8.9'
       - name: Test encryption and build APK
-        run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug
+        run: gradle --no-daemon testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
       - name: Print lint findings
         if: failure()
         run: cat app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt

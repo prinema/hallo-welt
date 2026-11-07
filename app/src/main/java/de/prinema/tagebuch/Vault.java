@@ -64,6 +64,7 @@ final class Vault {
     }
     void save(List<Entry> entries) throws Exception {
         if(key==null) throw new IOException("Locked");
+        if(entries.size()>20000) throw new IOException("Too many entries");
         byte[] plain=encode(entries), header=new byte[64]; header[0]='T'; header[1]='B'; header[2]=1;
         System.arraycopy(wrapped,0,header,4,60);
         FileOutputStream out=null;

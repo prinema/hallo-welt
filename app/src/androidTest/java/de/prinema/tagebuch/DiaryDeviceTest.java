@@ -1,12 +1,14 @@
 package de.prinema.tagebuch;
 
 import android.content.Intent;
-import android.test.InstrumentationTestCase;
+import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentation;
+import static org.junit.Assert.*;
+import org.junit.Test;
 import androidx.test.uiautomator.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
-public class DiaryDeviceTest extends InstrumentationTestCase {
+public class DiaryDeviceTest {
     private UiDevice device;
     private static final String PKG="de.prinema.tagebuch";
     private void waitText(String text) { assertTrue("Missing UI: "+text, device.wait(Until.hasObject(By.textContains(text)),15000)); }
@@ -22,7 +24,7 @@ public class DiaryDeviceTest extends InstrumentationTestCase {
         UiObject2 pin=device.findObject(By.clazz("android.widget.EditText"));pin.click();device.executeShellCommand("input text 2468");device.pressEnter();
         waitText("Neuer Eintrag");
     }
-    public void testEncryptedDiaryAndLocking() throws Exception {
+    @Test public void testEncryptedDiaryAndLocking() throws Exception {
         device=UiDevice.getInstance(getInstrumentation());launch();unlock();
         tap("Neuer Eintrag");device.findObject(By.clazz("android.widget.EditText")).setText("Ein sonniger Testtag mit Grüßen.");tap("Speichern");waitText("Ein sonniger Testtag");
         // A second entry on the same day must remain a separate entry.
