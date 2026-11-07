@@ -40,7 +40,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
             adb shell locksettings set-pin 2468
-            gradle --no-daemon connectedDebugAndroidTest || { adb logcat -d -s AndroidRuntime TestRunner System.out; exit 1; }
+            gradle --no-daemon connectedDebugAndroidTest || { adb logcat -d -s AndroidRuntime TestRunner System.out DiaryCrypto; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
           name: Tagebuch-APK

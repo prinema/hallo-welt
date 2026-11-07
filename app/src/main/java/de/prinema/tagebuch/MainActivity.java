@@ -95,7 +95,7 @@ public class MainActivity extends Activity {
     }
     private void completeUnlock(Cipher c){
         try{entries=vault.finish(c);unlocked=true;generation++;showEntries();if(importBytes!=null)passwordDialog(false);}
-        catch(Exception e){lockSession();showInfo("Tagebuch konnte nicht geöffnet werden","Bitte erneut entsperren. Falls die Gerätesperre entfernt oder die Daten beschädigt wurden, ist eine Passwort-Sicherung zur Wiederherstellung nötig.");}
+        catch(Exception e){debugException(e);lockSession();showInfo("Tagebuch konnte nicht geöffnet werden","Bitte erneut entsperren. Falls die Gerätesperre entfernt oder die Daten beschädigt wurden, ist eine Passwort-Sicherung zur Wiederherstellung nötig.");}
     }
     private void lockSession(){
         generation++;unlocked=false;busy=false;
@@ -184,6 +184,10 @@ public class MainActivity extends Activity {
         super.onActivityResult(request,result,data);
         if(request==EXPORT){byte[] bytes=exportBytes;exportBytes=null;if(result==RESULT_OK&&data!=null&&data.getData()!=null&&bytes!=null){try(OutputStream out=getContentResolver().openOutputStream(data.getData(),"wt")){if(out==null)throw new IOException();out.write(bytes);toast("Verschlüsselte Sicherung gespeichert.");}catch(Exception e){toast("Sicherung konnte nicht geschrieben werden.");}}}
         if(request==IMPORT&&result==RESULT_OK&&data!=null&&data.getData()!=null){try(InputStream in=getContentResolver().openInputStream(data.getData())){importBytes=CryptoBox.readLimited(in);if(unlocked)passwordDialog(false);else toast("Entsperre das Tagebuch für den Import.");}catch(Exception e){toast("Datei nicht lesbar oder größer als 8 MB.");}}
+    }
+    private void debugException(Exception error) {
+        if((getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE)==0)return;
+        for(Throwable t=error;t!=null;t=t.getCause())android.util.Log.e("DiaryCrypto",t.getClass().getName()+" "+java.util.Arrays.toString(t.getStackTrace()));
     }
     private void secureDialog(){if(dialog!=null&&dialog.getWindow()!=null)dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);}
     private void showInfo(String title,String message){dialog=new AlertDialog.Builder(this).setTitle(title).setMessage(message).setPositiveButton("Verstanden",null).show();secureDialog();}
