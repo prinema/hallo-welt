@@ -43,7 +43,7 @@ public class MainActivity extends Activity {
         started=false; lockSession(); super.onStop();
     }
     @Override protected void onDestroy() { if(cancellation!=null)cancellation.cancel(); worker.shutdownNow(); super.onDestroy(); }
-    @Override protected void onSaveInstanceState(Bundle state) { /* No diary plaintext in saved instance state. */ }
+    @Override protected void onSaveInstanceState(Bundle state) { super.onSaveInstanceState(state); state.clear(); /* Never save diary plaintext. */ }
     private int dp(float n){return (int)(getResources().getDisplayMetrics().density*n+0.5f);}
     private GradientDrawable rounded(int color,int radius){GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));return d;}
     private TextView text(String s,int size,int color){TextView t=new TextView(this);t.setText(s);t.setTextSize(size);t.setTextColor(color);t.setIncludeFontPadding(false);return t;}
@@ -63,17 +63,17 @@ public class MainActivity extends Activity {
     private void header(String title,Runnable back,boolean lock){
         LinearLayout bar=new LinearLayout(this);bar.setGravity(Gravity.CENTER_VERTICAL);
         if(back!=null){TextView b=text("‹",38,INK);b.setGravity(Gravity.CENTER);b.setContentDescription("Zurück");bar.addView(b,new LinearLayout.LayoutParams(dp(42),dp(52)));b.setOnClickListener(v->back.run());}
-        TextView h=text(title,28,INK);h.setTypeface(null,1);bar.addView(h,new LinearLayout.LayoutParams(0,dp(56),1));h.setGravity(Gravity.CENTER_VERTICAL);
+        TextView h=text(title,28,INK);h.setTypeface(null,Typeface.BOLD);bar.addView(h,new LinearLayout.LayoutParams(0,dp(56),1));h.setGravity(Gravity.CENTER_VERTICAL);
         if(lock){TextView b=text("Sperren",14,ACCENT);b.setPadding(dp(8),dp(16),0,dp(16));bar.addView(b);b.setOnClickListener(v->{saveEditor(false);lockSession();});}
         root.addView(bar);space(root,12);
     }
     private LinearLayout scroll(){ScrollView s=new ScrollView(this);s.setFillViewport(true);body=new LinearLayout(this);body.setOrientation(LinearLayout.VERTICAL);s.addView(body);root.addView(s,new LinearLayout.LayoutParams(-1,0,1));return body;}
     private void lockedScreen(){
-        base();LinearLayout center=new LinearLayout(this);center.setOrientation(1);center.setGravity(Gravity.CENTER);root.addView(center,new LinearLayout.LayoutParams(-1,0,1));
+        base();LinearLayout center=new LinearLayout(this);center.setOrientation(LinearLayout.VERTICAL);center.setGravity(Gravity.CENTER);root.addView(center,new LinearLayout.LayoutParams(-1,0,1));
         TextView brand=text("Tagebuch",19,MUTED);brand.setGravity(Gravity.CENTER);center.addView(brand);space(center,36);
         View sun=new View(this){final Paint p=new Paint(3);@Override protected void onDraw(Canvas c){super.onDraw(c);p.setColor(YELLOW);c.drawCircle(getWidth()/2f,getHeight()/2f,dp(90),p);p.setColor(0xFFF6B56B);p.setStrokeWidth(dp(5));p.setStrokeCap(Paint.Cap.ROUND);c.drawLine(getWidth()/2f+dp(65),dp(15),getWidth()/2f+dp(72),dp(1),p);}};
         center.addView(sun,new LinearLayout.LayoutParams(-1,dp(190)));
-        TextView title=text("Dein Raum.\nDeine Gedanken.",30,INK);title.setGravity(Gravity.CENTER);title.setTypeface(null,1);center.addView(title);space(center,20);
+        TextView title=text("Dein Raum.\nDeine Gedanken.",30,INK);title.setGravity(Gravity.CENTER);title.setTypeface(null,Typeface.BOLD);center.addView(title);space(center,20);
         TextView sub=text("Ein kleiner Moment nur für dich.",16,MUTED);sub.setGravity(Gravity.CENTER);center.addView(sub);
         root.addView(button("Entsperren",true,this::authenticate));space(root,10);
         TextView hint=text("Fingerabdruck oder Handy-PIN",13,MUTED);hint.setGravity(Gravity.CENTER);root.addView(hint);space(root,16);
@@ -114,11 +114,11 @@ public class MainActivity extends Activity {
         ArrayList<Vault.Entry> sorted=new ArrayList<>(entries);sorted.sort((a,b)->Long.compare(b.created,a.created));String previous="";
         for(Vault.Entry e:sorted){
             String group=date(e.created,"EEEE, d. MMMM yyyy");
-            if(!group.equals(previous)){space(list,18);TextView day=text(group,15,INK);day.setTypeface(null,1);day.setPadding(dp(12),dp(10),dp(12),dp(10));day.setBackground(rounded(previous.isEmpty()?PEACH:YELLOW,12));list.addView(day);previous=group;}
-            space(list,10);LinearLayout card=new LinearLayout(this);card.setOrientation(1);card.setPadding(dp(16),dp(15),dp(16),dp(17));card.setBackground(rounded(Color.WHITE,18));
+            if(!group.equals(previous)){space(list,18);TextView day=text(group,15,INK);day.setTypeface(null,Typeface.BOLD);day.setPadding(dp(12),dp(10),dp(12),dp(10));day.setBackground(rounded(previous.isEmpty()?PEACH:YELLOW,12));list.addView(day);previous=group;}
+            space(list,10);LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(16),dp(15),dp(16),dp(17));card.setBackground(rounded(Color.WHITE,18));
             card.addView(text(date(e.created,"HH:mm"),13,ACCENT));space(card,8);TextView snippet=text(e.text,17,INK);snippet.setMaxLines(4);snippet.setEllipsize(android.text.TextUtils.TruncateAt.END);snippet.setLineSpacing(dp(3),1);card.addView(snippet);list.addView(card);card.setOnClickListener(v->showEditor(e));
         }
-        if(entries.isEmpty()){space(list,56);TextView empty=text("Deine erste Seite wartet.",24,INK);empty.setTypeface(null,1);list.addView(empty);space(list,12);list.addView(text("Ein Gedanke, ein schöner Moment oder einfach dein Tag. Schreib, wie es sich für dich richtig anfühlt.",17,MUTED));}
+        if(entries.isEmpty()){space(list,56);TextView empty=text("Deine erste Seite wartet.",24,INK);empty.setTypeface(null,Typeface.BOLD);list.addView(empty);space(list,12);list.addView(text("Ein Gedanke, ein schöner Moment oder einfach dein Tag. Schreib, wie es sich für dich richtig anfühlt.",17,MUTED));}
         space(list,24);root.addView(button("＋  Neuer Eintrag",true,()->showEditor(null)));
     }
     private void showEditor(Vault.Entry e){
@@ -145,14 +145,14 @@ public class MainActivity extends Activity {
     }
     private void showBackups(){
         base();header("Sicherungen",this::showEntries,false);LinearLayout l=scroll();space(l,16);l.addView(text("Deine Einträge bleiben auf diesem Gerät.",17,INK));space(l,24);
-        LinearLayout card=new LinearLayout(this);card.setOrientation(1);card.setPadding(dp(18),dp(20),dp(18),dp(20));card.setBackground(rounded(YELLOW,20));
-        TextView h=text("Deine Gedanken mitnehmen",21,INK);h.setTypeface(null,1);card.addView(h);space(card,12);card.addView(text("Eine verschlüsselte Datei schützt deine Einträge mit einem eigenen Passwort. Damit kannst du sie auch auf einem neuen Handy wiederherstellen.",16,INK));l.addView(card);space(l,24);
+        LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(18),dp(20),dp(18),dp(20));card.setBackground(rounded(YELLOW,20));
+        TextView h=text("Deine Gedanken mitnehmen",21,INK);h.setTypeface(null,Typeface.BOLD);card.addView(h);space(card,12);card.addView(text("Eine verschlüsselte Datei schützt deine Einträge mit einem eigenen Passwort. Damit kannst du sie auch auf einem neuen Handy wiederherstellen.",16,INK));l.addView(card);space(l,24);
         l.addView(button("Sicherung exportieren",true,()->passwordDialog(true)));l.addView(button("Sicherung importieren",false,()->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("*/*");i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,IMPORT);}));space(l,22);
         l.addView(text("Beim Import werden Einträge ergänzt. Identische Einträge werden übersprungen; geänderte Fassungen bleiben als eigene Einträge erhalten.",14,MUTED));space(l,18);l.addView(text("Bewahre das Sicherungspasswort auf. Es wird nicht gespeichert und kann nicht zurückgesetzt werden.",14,MUTED));space(l,18);l.addView(text("Schutz: AES-256-GCM · Android Keystore\nSicherungen: Argon2id · 64 MiB · 3 Durchläufe\nKeine Internetberechtigung · Android 11 oder neuer",12,MUTED));
     }
     private void passwordDialog(boolean exporting){
         if(!unlocked||busy)return;
-        LinearLayout l=new LinearLayout(this);l.setOrientation(1);l.setPadding(dp(24),dp(12),dp(24),dp(4));
+        LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);l.setPadding(dp(24),dp(12),dp(24),dp(4));
         l.addView(text(exporting?"Wähle ein eigenes Passwort mit mindestens 12 Zeichen.":"Gib das Passwort dieser Sicherung ein.",15,INK));
         EditText pw=new EditText(this);pw.setHint("Sicherungspasswort");pw.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);pw.setSaveEnabled(false);pw.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);pw.setImeOptions(EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);l.addView(pw);
         EditText repeat=new EditText(this);if(exporting){repeat.setHint("Passwort wiederholen");repeat.setInputType(pw.getInputType());repeat.setSaveEnabled(false);repeat.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);repeat.setImeOptions(EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);l.addView(repeat);}
