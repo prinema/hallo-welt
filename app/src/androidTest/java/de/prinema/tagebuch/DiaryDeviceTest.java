@@ -11,11 +11,16 @@ import java.nio.charset.StandardCharsets;
 public class DiaryDeviceTest {
     private UiDevice device;
     private static final String PKG="de.prinema.tagebuch";
-    private void waitText(String text) { assertTrue("Missing UI: "+text, device.wait(Until.hasObject(By.textContains(text)),15000)); }
+    private void waitText(String text) {
+        if(!device.wait(Until.hasObject(By.textContains(text)),15000)) {
+            try {java.io.ByteArrayOutputStream tree=new java.io.ByteArrayOutputStream();device.dumpWindowHierarchy(tree);System.out.println("TEST UI: "+tree.toString("UTF-8"));} catch(Exception ignored) {}
+            fail("Missing UI: "+text+" in "+device.getCurrentPackageName());
+        }
+    }
     private void tap(String text) { waitText(text);device.findObject(By.textContains(text)).click(); }
     private void launch() throws Exception {
         Intent i=getInstrumentation().getTargetContext().getPackageManager().getLaunchIntentForPackage(PKG);i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        getInstrumentation().getTargetContext().startActivity(i);waitText("Entsperren");
+        getInstrumentation().startActivitySync(i);getInstrumentation().waitForIdleSync();waitText("Entsperren");
     }
     private void unlock() throws Exception {
         tap("Entsperren");
