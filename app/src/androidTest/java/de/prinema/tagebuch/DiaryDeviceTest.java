@@ -30,7 +30,18 @@ public class DiaryDeviceTest {
         waitText("Neuer Eintrag");
     }
     @Test public void testEncryptedDiaryAndLocking() throws Exception {
-        device=UiDevice.getInstance(getInstrumentation());launch();unlock();
+        device=UiDevice.getInstance(getInstrumentation());
+        device.wakeUp();
+        android.app.KeyguardManager km=(android.app.KeyguardManager)getInstrumentation().getTargetContext().getSystemService(android.content.Context.KEYGUARD_SERVICE);
+        if(km.isKeyguardLocked()) {
+            device.pressMenu();
+            device.swipe(device.getDisplayWidth()/2,device.getDisplayHeight()*4/5,device.getDisplayWidth()/2,device.getDisplayHeight()/5,20);
+            device.waitForIdle();
+            device.executeShellCommand("input text 2468");device.pressEnter();
+            for(int i=0;i<30 && km.isKeyguardLocked();i++)android.os.SystemClock.sleep(100);
+            assertFalse("Emulator lock screen was not dismissed",km.isKeyguardLocked());
+        }
+        launch();unlock();
         tap("Neuer Eintrag");device.findObject(By.clazz("android.widget.EditText")).setText("Ein sonniger Testtag mit Grüßen.");tap("Speichern");waitText("Ein sonniger Testtag");
         // A second entry on the same day must remain a separate entry.
         tap("Neuer Eintrag");device.findObject(By.clazz("android.widget.EditText")).setText("Noch ein Moment am selben Tag.");tap("Speichern");waitText("Noch ein Moment");
