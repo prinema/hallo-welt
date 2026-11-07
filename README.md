@@ -25,7 +25,13 @@ JDK 17, Gradle 8.9, Android SDK 35. Kein Gradle Wrapper enthalten; CI richtet Gr
 
 CI lädt die Debug-APK und Testberichte hoch. Tests decken Rundläufe, zufällige Nonces, falsche Schlüssel/Passwörter, manipulierte Ciphertexte/Header und Dateigrößenlimits ab. Fingerabdruck, Gerätesperre und Hintergrundwechsel müssen zusätzlich auf dem konkreten Android-Handy ausprobiert werden; kein unabhängiges Sicherheitsaudit.
 
-Die erste Ausgabe ist eine Debug-Testversion. Für dauerhafte Updates ist vor der nächsten Ausgabe eine stabile private Signierung einzurichten; frische CI-Debug-Schlüssel können eine Neuinstallation erforderlich machen. Vor Neuinstallation Sicherung exportieren.
+Version 1.1 führt einen dauerhaft aufbewahrten privaten Signierschlüssel ein. Der Wechsel von der ersten Testversion erfordert einmalig Export, Neuinstallation und Import. Ab 1.1 immer denselben privaten Schlüssel verwenden und versionCode erhöhen, damit Android Updates ohne Löschen der Einträge annimmt.
+
+Das private Archiv `Tagebuch-Signierschluessel.zip` wird separat aufbewahrt und gehört niemals in dieses öffentliche Repository. Es enthält PKCS12-Keystore und Passwortdatei. Das CI-Artefakt ist ein Zwischenprodukt; vor Auslieferung mit dem privaten Schlüssel signieren:
+
+    python3 scripts/sign_apk.py --input app-debug.apk --signer apksigner.jar --keystore /private/tagebuch-release.p12 --password-file /private/signing-password.txt --output Tagebuch-1.1.apk
+
+Die Signaturprüfung ist Teil dieses Skripts. Die übergebene Passwortdatei wird nicht in die APK eingebaut. Der Signierschlüssel ist unabhängig von der Verschlüsselung der Tagebucheinträge.
 
 ## Grenzen der ersten Version
 Maximal 8 MiB pro Datei und 200.000 Zeichen pro Eintrag. Die gesamte verschlüsselte Datei wird beim Speichern atomar ersetzt. Große Tagebücher sind daher für eine spätere Datenbankversion vorgesehen. Wer die Geräte-PIN kennt, kann die App entsperren. Eine bereits entsperrte, kompromittierte Laufzeit ist nicht durch Dateiverschlüsselung abgedeckt.

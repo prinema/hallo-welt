@@ -13,6 +13,11 @@ public class DiaryDeviceTest {
     private static final String PKG="de.prinema.tagebuch";
     private void waitText(String text) {
         if(!device.wait(Until.hasObject(By.textContains(text)),15000)) {
+            UiObject2 alert=device.findObject(By.res("android:id/alertTitle"));
+            if(alert!=null&&alert.getText()!=null&&alert.getText().contains("Pixel Launcher")) {
+                UiObject2 close=device.findObject(By.res("android:id/aerr_close"));if(close!=null)close.click();
+                if(device.wait(Until.hasObject(By.textContains(text)),15000))return;
+            }
             try {java.io.ByteArrayOutputStream tree=new java.io.ByteArrayOutputStream();device.dumpWindowHierarchy(tree);System.out.println("TEST UI: "+tree.toString("UTF-8"));} catch(Exception ignored) {}
             fail("Missing UI: "+text+" in "+device.getCurrentPackageName());
         }
