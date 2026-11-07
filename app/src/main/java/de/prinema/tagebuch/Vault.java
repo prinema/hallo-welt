@@ -46,18 +46,20 @@ final class Vault {
             wrapped=Arrays.copyOfRange(opening,4,64);
             c.init(Cipher.DECRYPT_MODE,kek,new GCMParameterSpec(128,Arrays.copyOf(wrapped,12)));
         } else c.init(Cipher.ENCRYPT_MODE,kek);
-        c.updateAAD(WRAP_AAD); return c;
+        return c;
     }
     ArrayList<Entry> finish(Cipher c) throws Exception {
         try {
+            // Keystore updates must only run after BiometricPrompt authorizes this operation.
+            c.updateAAD(WRAP_AAD);
             if(existing) {
                 key=c.doFinal(wrapped,12,48);
                 byte[] plain=CryptoBox.open(key,Arrays.copyOfRange(opening,64,opening.length),Arrays.copyOf(opening,64));
                 try { return decode(plain); } finally { Arrays.fill(plain,(byte)0); }
             }
             key=CryptoBox.random(32);
-            byte[] sealed=c.doFinal(key); wrapped=new byte[60];
-            System.arraycopy(c.getIV(),0,wrapped,0,12); System.arraycopy(sealed,0,wrapped,12,48);
+            byte[] iv=c.getIV(); byte[] sealed=c.doFinal(key); wrapped=new byte[60];
+            System.arraycopy(iv,0,wrapped,0,12); System.arraycopy(sealed,0,wrapped,12,48);
             ArrayList<Entry> entries=new ArrayList<>(); save(entries); return entries;
         } catch(Exception e) { lock(); throw e; }
         finally { opening=null; }
